@@ -37,8 +37,8 @@ function MonkeyConfig() {
      * @param newData New data object
      */
     function init(newData) {
-        console.log(data);
         data = newData;
+        console.log(data);
 
         if (data) {
             params = data.parameters || data.params;
