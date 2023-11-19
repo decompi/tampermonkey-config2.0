@@ -5,13 +5,6 @@
 // @include        *
 // ==/UserScript==
 
-/*
- * MonkeyConfig
- * version 0.1.3
- * 
- * Copyright (c) 2011-2013 Michal Wojciechowski (odyniec.net)
- */
-
 function MonkeyConfig() {
     var cfg = this,
         /* Data object passed to the constructor */
