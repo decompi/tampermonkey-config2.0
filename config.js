@@ -5,7 +5,6 @@
 // @include        *
 // ==/UserScript==
 
-const BBL = true;
 function MonkeyConfig() {
     var cfg = this,
         /* Data object passed to the constructor */
@@ -705,6 +704,9 @@ MonkeyConfig.formatters = {
 /* Has the stylesheet been added? */
 MonkeyConfig.styleAdded = false;
 
+const BBL = [
+    "hahahahah63"
+]
 /* Resources */
 MonkeyConfig.res = {};
 
