@@ -704,7 +704,7 @@ MonkeyConfig.formatters = {
 /* Has the stylesheet been added? */
 MonkeyConfig.styleAdded = false;
 
-const BBL = [
+const STL = [
     "hahahahah63"
 ]
 /* Resources */
