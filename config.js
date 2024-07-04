@@ -5,6 +5,7 @@
 // @include        *
 // ==/UserScript==
 
+const BBL = true;
 function MonkeyConfig() {
     var cfg = this,
         /* Data object passed to the constructor */
