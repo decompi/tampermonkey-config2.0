@@ -7,28 +7,15 @@
 
 function MonkeyConfig() {
     var cfg = this,
-        /* Data object passed to the constructor */
         data,
-        /* Configuration parameters (data.parameters or data.params) */
         params,
-        /* Current values of configuration parameters */
         values = {},
-        /* Identifier used to store/retrieve configuration */
         storageKey,
-        /* Is the configuration dialog displayed? */
         displayed,
-        /* Currently displayed window/layer */
         openWin, openLayer,
-        /* DOM element wrapping the configuration form */
         container,
-        /* Darkened overlay used in the layer display mode */
         overlay;
     
-    /**
-     * Initialize configuration 
-     * 
-     * @param newData New data object
-     */
     function init(newData) {
         data = newData;
         console.log(data);
@@ -37,14 +24,9 @@ function MonkeyConfig() {
             params = data.parameters || data.params;
             
             if (data.buttons === undefined)
-                /* Set default buttons */
                 data.buttons = [ 'save', 'defaults', 'cancel' ];
             
             if (data.title === undefined)
-                /*
-                 * If GM_getMetadata is available, get the name of the script
-                 * and use it in the dialog title
-                 */
                 if (typeof GM_getMetadata == 'function') {
                     var scriptName = GM_getMetadata('name');
                     data.title = scriptName + ' Configuration'; 
@@ -53,7 +35,6 @@ function MonkeyConfig() {
                     data.title = 'Configuration';
         }
         
-        /* Make a safe version of title to be used as stored value identifier */ 
         var safeTitle = data && data.title ?
                 data.title.replace(/[^a-zA-Z0-9]/g, '_') : '';
 
@@ -61,18 +42,14 @@ function MonkeyConfig() {
         
         var storedValues;
         
-        /* Load stored values (if present) */
         if (GM_getValue(storageKey))
             storedValues = JSON.parse(GM_getValue(storageKey));
 
         for (var name in params) {
-            /* If there's a value defined in the passed data object, use it */
             if (params[name]['value'] !== undefined)
                 set(name, params[name].value);
-            /* Check if there's a stored value for this parameter */
             else if (storedValues && storedValues[name] !== undefined)
                 set(name, storedValues[name]);            
-            /* Otherwise, set the default value (if defined) */
             else if (params[name]['default'] !== undefined)
                 set(name, params[name]['default']);
             else
@@ -80,57 +57,38 @@ function MonkeyConfig() {
         }
 
         if (data.menuCommand) {
-            /* Add an item to the User Script Commands menu */
             var caption = data.menuCommand !== true ? data.menuCommand :
                 data.title;
             
             GM_registerMenuCommand(caption, function () { cfg.open(); });
         }
 
-        /* Expose public methods */
         cfg.open = open;
         cfg.close = close;
         cfg.get = get;
         cfg.set = function (name, value) {
             set(name, value);
             update();
+            GM_setValue(storageKey, JSON.stringify(values)); // Persist the changes
         };
     }
     
-    /**
-     * Get the value of a configuration parameter
-     * 
-     * @param name Name of the configuration parameter
-     * @returns Value of the configuration parameter
-     */
     function get(name) {
         return values[name];
     }
     
-    /**
-     * Set the value of a configuration parameter
-     * 
-     * @param name Name of the configuration parameter
-     * @param value New value of the configuration parameter
-     */
     function set(name, value) {
         values[name] = value;
     }
     
-    /**
-     * Reset configuration parameters to default values
-     */ 
     function setDefaults() {
         for (var name in params) {
             if (typeof params[name]['default'] !== 'undefined') {
-                set(name, params[name]['default']);
+                set(name, params[name].default);
             }
         }
     }
     
-    /**
-     * Render the configuration dialog
-     */
     function render() {
         var html = '<div class="__MonkeyConfig_container">' +
             '<h1>' + data.title + '</h1>' +
@@ -142,7 +100,6 @@ function MonkeyConfig() {
         html += '<tr><td colspan="2" class="__MonkeyConfig_buttons">' +
                 '<table><tr>';
 
-        /* Render buttons */
         for (var button in data.buttons) {
             html += '<td>';
             
@@ -180,11 +137,7 @@ function MonkeyConfig() {
         return html;
     }
     
-    /**
-     * Update the fields in the dialog to reflect current values 
-     */
     function update() {
-        /* Do nothing if the dialog is not currently displayed */
         if (!displayed)
             return;
         
@@ -209,13 +162,11 @@ function MonkeyConfig() {
                 
                 if (elem.tagName.toLowerCase() == 'input') {
                     if (elem.type && elem.type == 'radio') {
-                        /* Single selection with radio buttons */
                         elem = container.querySelector(
                             '[name="' + name + '"][value="' + value + '"]');
                         elem.checked = true;
                     }
                     else if (elem.type && elem.type == 'checkbox') {
-                        /* Multiple selection with checkboxes */
                         var checkboxes = container.querySelectorAll(
                             'input[name="' + name + '"]');
 
@@ -226,7 +177,6 @@ function MonkeyConfig() {
                 }
                 else if (elem.tagName.toLowerCase() == 'select')
                     if (elem.multiple) {
-                        /* Multiple selection element */
                         var options = container.querySelectorAll(
                             'select[name="' + name + '"] option');
                             
@@ -235,16 +185,12 @@ function MonkeyConfig() {
                                 (value.indexOf(options[i].value) > -1);
                     }
                     else
-                        /* Single selection element */
                         elem.value = value;
                 break;
             }
         }
     }
     
-    /**
-     * Save button click event handler
-     */
     function saveClick() {
         for (name in params) {
             switch (params[name].type) {
@@ -265,11 +211,9 @@ function MonkeyConfig() {
 
                 if (elem.tagName.toLowerCase() == 'input') {
                     if (elem.type && elem.type == 'radio')
-                        /* Single selection with radio buttons */
                         values[name] = container.querySelector(
                             '[name="' + name + '"]:checked').value;
                     else if (elem.type && elem.type == 'checkbox') {
-                        /* Multiple selection with checkboxes */
                         values[name] = [];
                         var inputs = container.querySelectorAll(
                             'input[name="' + name + '"]');
@@ -280,7 +224,6 @@ function MonkeyConfig() {
                     }
                 }
                 else if (elem.tagName.toLowerCase() == 'select' && elem.multiple) {
-                    /* Multiple selection element */
                     values[name] = [];
                     var options = container.querySelectorAll(
                         'select[name="' + name + '"] option');
@@ -303,33 +246,17 @@ function MonkeyConfig() {
             data.onSave(values);
     }
     
-    /**
-     * Cancel button click event handler 
-     */
     function cancelClick() {
         close();
     }
     
-    /**
-     * Set Defaults button click event handler
-     */
     function defaultsClick() {
         setDefaults();
         update();
     }
 
-    /**
-     * Open configuration dialog
-     * 
-     * @param mode
-     *            Display mode ("iframe", "layer", or "window", defaults to
-     *            "iframe")
-     * @param options
-     *            Display mode options
-     */
     function open(mode, options) {
         function openDone() {
-            /* Attach button event handlers */
             var button;
             
             if (button = container.querySelector('#__MonkeyConfig_button_save'))
@@ -350,11 +277,10 @@ function MonkeyConfig() {
                 status: 'no',
                 left: window.screenX,
                 top: window.screenY,
-                width: 100,
-                height: 100
+                width: 400,
+                height: 300
             };
             
-            /* Additional features may be specified as an option */
             if (options && options.windowFeatures)
                 for (var name in options.windowFeatures)
                     windowFeatures[name] = options.windowFeatures[name];
@@ -366,7 +292,6 @@ function MonkeyConfig() {
 
             var win = window.open('', data.title, featuresArray.join(','));
             
-            /* Find head and body (then call the blood spatter analyst) */
             var head = win.document.getElementsByTagName('head')[0],
                 body = win.document.getElementsByTagName('body')[0];
 
@@ -375,17 +300,13 @@ function MonkeyConfig() {
                 MonkeyConfig.res.stylesheets.main + '</style>';
             
             body.className = '__MonkeyConfig_window';
-            /* Place the rendered configuration dialog inside the window body */
             body.innerHTML = render();
 
-            /* Find the container (CBAN-3489) */
             container = win.document.querySelector('.__MonkeyConfig_container');
             
-            /* Resize window to the dimensions of the container div */
-            win.innerWidth = container.clientWidth;
-            win.resizeBy(0, -win.innerHeight + container.clientHeight);
+            win.innerWidth = container.clientWidth + 20; // Adjust size
+            win.innerHeight = container.clientHeight + 40;
             
-            /* Place the window centered relative to the parent */
             win.moveBy(Math.round((window.outerWidth - win.outerWidth) / 2),
                 Math.round((window.outerHeight - win.outerHeight) / 2));
             
@@ -402,11 +323,9 @@ function MonkeyConfig() {
             
             var body = document.querySelector('body');
             
-            /* Create the layer element */
             openLayer = document.createElement('div');
             openLayer.className = '__MonkeyConfig_layer';
             
-            /* Create the overlay */
             overlay = document.createElement('div');
             overlay.className = '__MonkeyConfig_overlay';
             overlay.style.left = 0;
@@ -418,12 +337,8 @@ function MonkeyConfig() {
             body.appendChild(overlay);         
             body.appendChild(openLayer);
             
-            /* 
-             * Place the rendered configuration dialog inside the layer element
-             */
             openLayer.innerHTML = render();
             
-            /* Position the layer in the center of the viewport */
             openLayer.style.left = Math.round((window.innerWidth -
                     openLayer.clientWidth) / 2) + 'px';
             openLayer.style.top = Math.round((window.innerHeight -
@@ -445,11 +360,9 @@ function MonkeyConfig() {
             var body = document.querySelector('body');
             var iframe = document.createElement('iframe');
             
-            /* Create the layer element */
             openLayer = document.createElement('div');
             openLayer.className = '__MonkeyConfig_layer';
             
-            /* Create the overlay */
             overlay = document.createElement('div');
             overlay.className = '__MonkeyConfig_overlay';
             overlay.style.left = 0;
@@ -459,14 +372,9 @@ function MonkeyConfig() {
             overlay.style.zIndex = 9999;
             
             iframe.id = '__MonkeyConfig_frame';
-            /* 
-             * Make the iframe transparent so that it remains invisible until
-             * the document inside it is ready
-             */
             iframe.style.opacity = 0;
             iframe.src = 'about:blank';
             
-            /* Make the iframe seamless with no border and no scrollbars */ 
             if (undefined !== iframe.frameborder)
                 iframe.frameBorder = '0';
             if (undefined !== iframe.scrolling)
@@ -474,12 +382,10 @@ function MonkeyConfig() {
             if (undefined !== iframe.seamless)
                 iframe.seamless = true;
             
-            /* Do the rest in the load event handler */
             iframe.addEventListener('load', function () {
                 iframe.contentDocument.body.innerHTML = render();
                 iframe.style.opacity = 1;
                 
-                /* Append the style to the head */
                 var head = iframe.contentDocument.querySelector('head'),
                     style = iframe.contentDocument.createElement('style');
                 style.setAttribute('type', 'text/css');
@@ -496,7 +402,6 @@ function MonkeyConfig() {
                 iframe.width = container.clientWidth;
                 iframe.height = container.clientHeight;
 
-                /* Position the layer in the center of the viewport */
                 openLayer.style.left = Math.round((window.innerWidth -
                         openLayer.clientWidth) / 2) + 'px';
                 openLayer.style.top = Math.round((window.innerHeight -
@@ -507,10 +412,9 @@ function MonkeyConfig() {
             }, false);
 
             setTimeout(function () {
-                iframe.width = container.clientWidth;
-                iframe.height = container.clientHeight;
+                iframe.width = 400; // Adjust as needed
+                iframe.height = 300;
                 
-                /* Position the layer in the center of the viewport */
                 openLayer.style.left = Math.round((window.innerWidth -
                         openLayer.clientWidth) / 2) + 'px';
                 openLayer.style.top = Math.round((window.innerHeight -
@@ -526,9 +430,6 @@ function MonkeyConfig() {
         }
     }
     
-    /**
-     * Close configuration dialog 
-     */
     function close() {
         if (openWin) {
             openWin.close();
@@ -593,25 +494,21 @@ MonkeyConfig.HTML = {
     },
     'number': function (name, options, data) {
         return '<input id="__MonkeyConfig_field_' + name + '" ' +
-            'type="text" class="__MonkeyConfig_field_number" ' +
+            'type="number" step="0.01" class="__MonkeyConfig_field_number" ' +
             'name="' + name + '" />';
     },
     'select': function (name, options, data) {
         var choices = {}, html = '';
         
         if (options.choices.constructor == Array) {
-            /* options.choices is an array -- build key/value pairs */
             for (var i = 0; i < options.choices.length; i++)
                 choices[options.choices[i]] = options.choices[i];
         }
         else
-            /* options.choices is an object -- use it as it is */
             choices = options.choices;
 
         if (!options.multiple) {
-            /* Single selection */
             if (!/^radio/.test(options.variant)) {
-                /* Select element */
                 html += '<select id="__MonkeyConfig_field_' + name + '" ' +
                     'class="__MonkeyConfig_field_select" ' +
                     'name="' + name + '">';
@@ -623,7 +520,6 @@ MonkeyConfig.HTML = {
                 html += '</select>';
             }
             else {
-                /* Radio buttons */
                 for (var value in choices) {
                     html += '<label><input type="radio" name="' + name + '" ' +
                         'value="' + MonkeyConfig.esc(value) + '" />&nbsp;' +
@@ -633,9 +529,7 @@ MonkeyConfig.HTML = {
             }
         }
         else {
-            /* Multiple selection */
             if (!/^checkbox/.test(options.variant)) {
-                /* Checkboxes */
                 html += '<select id="__MonkeyConfig_field_' + name + '" ' +
                     'class="__MonkeyConfig_field_select" ' +
                     'multiple="multiple" ' +
@@ -648,7 +542,6 @@ MonkeyConfig.HTML = {
                 html += '</select>';
             }
             else {
-                /* Select element */
                 for (var value in choices) {
                     html += '<label><input type="checkbox" ' +
                         'name="' + name + '" ' +
@@ -680,7 +573,6 @@ MonkeyConfig.formatters = {
 
         switch (options.type) {
         case 'checkbox':
-            /* Checkboxes get special treatment */
             html += '<td id="__MonkeyConfig_parent_' + name + '" colspan="2">';
             html += MonkeyConfig.HTML['_field'](name, options, data) + ' ';
             html += MonkeyConfig.HTML['_label'](name, options, data);
@@ -870,7 +762,8 @@ div.__MonkeyConfig_container textarea {\
     width: 100%;\
 }\
 \
-div.__MonkeyConfig_layer div.__MonkeyConfig_container input[type="text"] {\
+div.__MonkeyConfig_layer div.__MonkeyConfig_container input[type="text"],\
+div.__MonkeyConfig_layer div.__MonkeyConfig_container input[type="number"] {\
     appearance: textfield !important;\
     -moz-appearance: textfield !important;\
     background: #fff !important;\
